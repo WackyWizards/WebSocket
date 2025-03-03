@@ -57,7 +57,14 @@ public sealed class WebSocketConnection : Component, IDisposable
 
 	public async Task SendMessage( Message message )
 	{
-		await Socket.Send( message );
+		try
+		{
+			await Socket.Send( message );
+		}
+		catch ( Exception ex )
+		{
+			Log.Warning( $"Failed to send WebSocket message: {ex.Message}" );
+		}
 	}
 
 	private void MessageReceived( string message )
