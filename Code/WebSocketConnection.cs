@@ -124,6 +124,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 				throw new Exception( $"Error sending request: {ex.Message}" );
 			}
 
+			// ReSharper disable once MethodHasAsyncOverload
 			cts.Cancel();
 			cts.Dispose();
 
