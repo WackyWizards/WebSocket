@@ -6,13 +6,13 @@ namespace WebSocket.Schema;
 public class Message
 {
 	[JsonPropertyName( "type" )]
-	public string Type { get; init; }
+	public string Type { get; set; }
 
 	[JsonPropertyName( "content" )]
-	public string Content { get; init; }
+	public string Content { get; set; }
 	
 	[JsonPropertyName("correlationId")]
-	public string CorrelationId { get; init; }
+	public string CorrelationId { get; set; }
 
 	public static implicit operator Message( string json )
 	{
@@ -33,11 +33,6 @@ public class Message
 
 	public static implicit operator string( Message message )
 	{
-		if ( message is null )
-		{
-			return "";
-		}
-
 		try
 		{
 			return JsonSerializer.Serialize( message );

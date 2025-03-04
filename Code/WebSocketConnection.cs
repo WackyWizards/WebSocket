@@ -59,7 +59,8 @@ public sealed class WebSocketConnection : Component, IDisposable
 	{
 		try
 		{
-			await Socket.Send( message );
+			var json = JsonSerializer.Serialize( message );
+			await Socket.Send( json );
 		}
 		catch ( Exception ex )
 		{
@@ -103,13 +104,13 @@ public sealed class WebSocketConnection : Component, IDisposable
 
 		if ( timeout.HasValue )
 		{
-			var timeoutTask = CreateTimeoutTask( request.CorrelationId, request.Type, timeout.Value );
-			_ = timeoutTask;
+			_ = CreateTimeoutTask( request.CorrelationId, request.Type, timeout.Value );
 		}
 
 		try
 		{
-			await Socket.Send( request );
+			var json = JsonSerializer.Serialize( request );
+			await Socket.Send( json );
 			Log.Info( $"Sent request {request.Type} with ID {request.CorrelationId}" );
 
 			return await tcs.Task;
@@ -118,12 +119,11 @@ public sealed class WebSocketConnection : Component, IDisposable
 		{
 			_pendingRequests.TryRemove( request.CorrelationId, out _ );
 
-			// Cancel and remove any timeouts
 			if ( !_timeoutTokens.TryRemove( request.CorrelationId, out var cts ) )
 			{
 				throw new Exception( $"Error sending request: {ex.Message}" );
 			}
-
+			
 			// ReSharper disable once MethodHasAsyncOverload
 			cts.Cancel();
 			cts.Dispose();
@@ -131,6 +131,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 			throw new Exception( $"Error sending request: {ex.Message}" );
 		}
 	}
+
 
 	private async Task CreateTimeoutTask( string correlationId, string requestType, int timeout )
 	{
