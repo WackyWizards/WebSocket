@@ -59,8 +59,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 	{
 		try
 		{
-			var json = JsonSerializer.Serialize( message );
-			await Socket.Send( json );
+			await Socket.Send( message );
 		}
 		catch ( Exception ex )
 		{
@@ -109,10 +108,8 @@ public sealed class WebSocketConnection : Component, IDisposable
 
 		try
 		{
-			var json = JsonSerializer.Serialize( request );
-			await Socket.Send( json );
+			await Socket.Send( request );
 			Log.Info( $"Sent request {request.Type} with ID {request.CorrelationId}" );
-
 			return await tcs.Task;
 		}
 		catch ( Exception ex )
