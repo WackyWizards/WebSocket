@@ -47,7 +47,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		try
 		{
 			await Socket.Connect( Uri );
-			Log.Info( $"Connected to WebSocket server at {Uri}" );
+			Log.Info( $"Connected to WebSocket server." );
 		}
 		catch ( Exception ex )
 		{
