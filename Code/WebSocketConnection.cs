@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,9 +13,15 @@ namespace WebSocket;
 public sealed class WebSocketConnection : Component, IDisposable
 {
 	public static WebSocketConnection Instance { get; private set; }
-	
+
 	[Property]
 	public string Uri { get; set; }
+
+	[Property, ToggleGroup( "UseToken" )]
+	public bool UseToken { get; set; } = false;
+
+	[Property, ToggleGroup( "UseToken" )]
+	public string ServiceName { get; set; }
 
 	public Sandbox.WebSocket Socket { get; set; }
 
@@ -28,7 +35,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 	protected override void OnStart()
 	{
 		Instance = this;
-		
+
 		Socket = new Sandbox.WebSocket();
 		Socket.OnMessageReceived += MessageReceived;
 		_ = Connect();
@@ -46,7 +53,29 @@ public sealed class WebSocketConnection : Component, IDisposable
 	{
 		try
 		{
-			await Socket.Connect( Uri );
+			if ( UseToken )
+			{
+				var token = await Sandbox.Services.Auth.GetToken( ServiceName );
+				if ( string.IsNullOrEmpty( token ) )
+				{
+					// Failed to fetch a valid session token.
+					return;
+				}
+
+				var headers = new Dictionary<string, string>()
+				{
+					{
+						"Authorization", token
+					}
+				};
+				
+				await Socket.Connect( Uri, headers );
+			}
+			else
+			{
+				await Socket.Connect( Uri );
+			}
+
 			Log.Info( $"Connected to WebSocket server." );
 		}
 		catch ( Exception ex )
@@ -120,7 +149,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 			{
 				throw new Exception( $"Error sending request: {ex.Message}" );
 			}
-			
+
 			// ReSharper disable once MethodHasAsyncOverload
 			cts.Cancel();
 			cts.Dispose();
