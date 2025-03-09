@@ -197,13 +197,12 @@ public sealed class WebSocketConnection : Component, IDisposable
 		await SendRequest( message );
 	}
 
-	public async void Dispose()
+	public void Dispose()
 	{
 		try
 		{
 			if ( Socket is not null )
 			{
-				await SendLeaveMessage();
 				Socket.OnMessageReceived -= MessageReceived;
 				Socket.Dispose();
 			}
