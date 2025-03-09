@@ -191,25 +191,39 @@ public sealed class WebSocketConnection : Component, IDisposable
 		}
 	}
 
-	public void Dispose()
+	private async Task SendLeaveMessage()
 	{
-		if ( Socket is not null )
-		{
-			Socket.OnMessageReceived -= MessageReceived;
-			Socket.Dispose();
-		}
+		var message = await RequestMessage.CreateAsync( "onLeave", Connection.Local.SteamId );
+		await SendRequest( message );
+	}
 
-		foreach ( var request in _pendingRequests )
+	public async void Dispose()
+	{
+		try
 		{
-			request.Value.TrySetCanceled();
-		}
-		_pendingRequests.Clear();
+			if ( Socket is not null )
+			{
+				await SendLeaveMessage();
+				Socket.OnMessageReceived -= MessageReceived;
+				Socket.Dispose();
+			}
 
-		foreach ( var token in _timeoutTokens )
-		{
-			token.Value.Cancel();
-			token.Value.Dispose();
+			foreach ( var request in _pendingRequests )
+			{
+				request.Value.TrySetCanceled();
+			}
+			_pendingRequests.Clear();
+
+			foreach ( var token in _timeoutTokens )
+			{
+				token.Value.Cancel();
+				token.Value.Dispose();
+			}
+			_timeoutTokens.Clear();
 		}
-		_timeoutTokens.Clear();
+		catch ( Exception ex )
+		{
+			Log.Error( $"Failed to dispose of WebSocketConnection: {ex.Message}" );
+		}
 	}
 }
