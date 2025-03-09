@@ -15,7 +15,7 @@ public class RequestMessage : Message
 		Token = token;
 	}
 
-	public static async Task<RequestMessage> CreateAsync( string type, SteamId steamId, string content )
+	public static async Task<RequestMessage> CreateAsync( string type, SteamId steamId, string content = null )
 	{
 		var token = await Sandbox.Services.Auth.GetToken( WebSocketConnection.Instance.ServiceName );
 		return new RequestMessage( type, steamId.ToString(), content, token );
