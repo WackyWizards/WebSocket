@@ -157,8 +157,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 			throw new Exception( $"Error sending request: {ex.Message}" );
 		}
 	}
-
-
+	
 	private async Task CreateTimeoutTask( string correlationId, string requestType, int timeout )
 	{
 		var cts = new CancellationTokenSource();
