@@ -17,10 +17,10 @@ public sealed class WebSocketConnection : Component, IDisposable
 	[Property]
 	public string Uri { get; set; }
 
-	[Property, ToggleGroup( "UseToken" )]
+	[Property, ToggleGroup( "UseToken", Label = "Use Token" )]
 	public bool UseToken { get; set; } = false;
 
-	[Property, ToggleGroup( "UseToken" )]
+	[Property, ToggleGroup( "UseToken", Label = "Use Token" )]
 	public string ServiceName { get; set; }
 
 	public Sandbox.WebSocket Socket { get; set; }
@@ -58,8 +58,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 				var token = await Sandbox.Services.Auth.GetToken( ServiceName );
 				if ( string.IsNullOrEmpty( token ) )
 				{
-					// Failed to fetch a valid session token.
-					return;
+					throw new InvalidOperationException( "Failed to fetch a valid session token for service: " + ServiceName );
 				}
 
 				var headers = new Dictionary<string, string>()
@@ -68,7 +67,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 						"Authorization", token
 					}
 				};
-				
+
 				await Socket.Connect( Uri, headers );
 			}
 			else
@@ -150,6 +149,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 				throw new Exception( $"Error sending request: {ex.Message}" );
 			}
 
+			// This suggestion does not pass whitelist.
 			// ReSharper disable once MethodHasAsyncOverload
 			cts.Cancel();
 			cts.Dispose();
@@ -157,7 +157,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 			throw new Exception( $"Error sending request: {ex.Message}" );
 		}
 	}
-	
+
 	private async Task CreateTimeoutTask( string correlationId, string requestType, int timeout )
 	{
 		var cts = new CancellationTokenSource();
@@ -188,12 +188,6 @@ public sealed class WebSocketConnection : Component, IDisposable
 				token.Dispose();
 			}
 		}
-	}
-
-	private async Task SendLeaveMessage()
-	{
-		var message = await RequestMessage.CreateAsync( "onLeave", Connection.Local.SteamId );
-		await SendRequest( message );
 	}
 
 	public void Dispose()
