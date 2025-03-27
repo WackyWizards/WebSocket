@@ -18,7 +18,7 @@ public class Message
 	public string Content { get; set; }
 	
 	[JsonPropertyName("correlationId")]
-	public string CorrelationId { get; set; }
+	internal string CorrelationId { get; set; }
 
 	public static implicit operator Message( string json )
 	{
