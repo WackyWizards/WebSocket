@@ -9,8 +9,8 @@ public class RequestMessage : Message
 	private RequestMessage( string type, string content, string steamId, string token )
 	{
 		Type = type;
-		SteamId = steamId;
 		Content = content;
+		SteamId = steamId;
 		CorrelationId = Guid.NewGuid().ToString();
 		Token = token;
 	}
