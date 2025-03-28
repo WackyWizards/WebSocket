@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using Sandbox;
 using Sandbox.Diagnostics;
@@ -26,7 +25,6 @@ public sealed class WebSocketConnection : Component, IDisposable
 	public Sandbox.WebSocket Socket { get; set; }
 
 	private readonly ConcurrentDictionary<string, TaskCompletionSource<ResponseMessage>> _pendingRequests = new();
-	private readonly ConcurrentDictionary<string, CancellationTokenSource> _timeoutTokens = new();
 
 	public event Action<Message> OnMessageReceived;
 
@@ -50,6 +48,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		{
 			Socket = new Sandbox.WebSocket();
 			Socket.OnMessageReceived += MessageReceived;
+			
 			if ( UseToken )
 			{
 				var token = await Sandbox.Services.Auth.GetToken( ServiceName );
@@ -101,12 +100,6 @@ public sealed class WebSocketConnection : Component, IDisposable
 			Message msg = message;
 			if ( !string.IsNullOrEmpty( msg.CorrelationId ) && _pendingRequests.TryRemove( msg.CorrelationId, out var tcs ) )
 			{
-				if ( _timeoutTokens.TryRemove( msg.CorrelationId, out var cts ) )
-				{
-					cts.Cancel();
-					cts.Dispose();
-				}
-
 				var response = JsonSerializer.Deserialize<ResponseMessage>( message );
 				tcs.TrySetResult( response );
 				Log.Info( $"Completed request with ID {msg.CorrelationId}" );
@@ -124,15 +117,10 @@ public sealed class WebSocketConnection : Component, IDisposable
 		}
 	}
 
-	public async Task<ResponseMessage> SendRequest( RequestMessage request, int? timeout = null )
+	public async Task<ResponseMessage> SendRequest( RequestMessage request )
 	{
 		var tcs = new TaskCompletionSource<ResponseMessage>();
 		_pendingRequests[request.CorrelationId] = tcs;
-
-		if ( timeout.HasValue )
-		{
-			_ = CreateTimeoutTask( request.CorrelationId, request.Type, timeout.Value );
-		}
 
 		try
 		{
@@ -143,51 +131,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		catch ( Exception ex )
 		{
 			_pendingRequests.TryRemove( request.CorrelationId, out _ );
-
-			if ( !_timeoutTokens.TryRemove( request.CorrelationId, out var cts ) )
-			{
-				throw new Exception( $"Error sending request: {ex.Message}" );
-			}
-
-			// This suggestion does not pass whitelist.
-			// ReSharper disable once MethodHasAsyncOverload
-			cts.Cancel();
-			cts.Dispose();
-
 			throw new Exception( $"Error sending request: {ex.Message}" );
-		}
-	}
-
-	private async Task CreateTimeoutTask( string correlationId, string requestType, int timeout )
-	{
-		var cts = new CancellationTokenSource();
-		_timeoutTokens[correlationId] = cts;
-
-		try
-		{
-			await Task.Delay( timeout, cts.Token );
-
-			if ( _pendingRequests.TryRemove( correlationId, out var timeoutTcs ) )
-			{
-				timeoutTcs.TrySetException( new TimeoutException( $"Request {requestType} timed out after {timeout} seconds" ) );
-			}
-		}
-		catch ( TaskCanceledException )
-		{
-			// This is expected if the response came before the timeout
-		}
-		catch ( Exception ex )
-		{
-			Log.Error( $"Error in timeout handling: {ex.Message}" );
-			throw new Exception( $"Error in timeout handling: {ex.Message}" );
-		}
-		finally
-		{
-			// Clean up the timeout token
-			if ( _timeoutTokens.TryRemove( correlationId, out var token ) )
-			{
-				token.Dispose();
-			}
 		}
 	}
 
@@ -206,13 +150,6 @@ public sealed class WebSocketConnection : Component, IDisposable
 				request.Value.TrySetCanceled();
 			}
 			_pendingRequests.Clear();
-
-			foreach ( var token in _timeoutTokens )
-			{
-				token.Value.Cancel();
-				token.Value.Dispose();
-			}
-			_timeoutTokens.Clear();
 		}
 		catch ( Exception ex )
 		{
