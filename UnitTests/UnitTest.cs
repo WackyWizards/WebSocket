@@ -1,5 +1,7 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+namespace WebSocket.Tests;
+
 [TestClass]
 public class TestInit
 {
@@ -7,5 +9,11 @@ public class TestInit
 	public static void ClassInitialize( TestContext context )
 	{
 		Sandbox.Application.InitUnitTest();
+	}
+	
+	[AssemblyCleanup]
+	public static void AssemblyCleanup()
+	{
+		Sandbox.Application.ShutdownUnitTest();
 	}
 }
