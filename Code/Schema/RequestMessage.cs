@@ -6,7 +6,7 @@ namespace WebSocket.Schema;
 
 public class RequestMessage : Message
 {
-	private RequestMessage( string type, string steamId, string content, string token )
+	private RequestMessage( string type, string content, string steamId, string token )
 	{
 		Type = type;
 		SteamId = steamId;
@@ -18,6 +18,6 @@ public class RequestMessage : Message
 	public static async Task<RequestMessage> CreateAsync( string type, SteamId steamId, string content = null )
 	{
 		var token = await Sandbox.Services.Auth.GetToken( WebSocketConnection.Instance.ServiceName );
-		return new RequestMessage( type, steamId.ToString(), content, token );
+		return new RequestMessage( type, content, steamId.ToString(), token );
 	}
 }
