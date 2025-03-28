@@ -35,11 +35,6 @@ public sealed class WebSocketConnection : Component, IDisposable
 	protected override void OnStart()
 	{
 		Instance = this;
-
-		Socket = new Sandbox.WebSocket();
-		Socket.OnMessageReceived += MessageReceived;
-		_ = Connect();
-
 		base.OnStart();
 	}
 
@@ -49,10 +44,12 @@ public sealed class WebSocketConnection : Component, IDisposable
 		base.OnDestroy();
 	}
 
-	private async Task Connect()
+	public async Task Connect()
 	{
 		try
 		{
+			Socket = new Sandbox.WebSocket();
+			Socket.OnMessageReceived += MessageReceived;
 			if ( UseToken )
 			{
 				var token = await Sandbox.Services.Auth.GetToken( ServiceName );
@@ -80,6 +77,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		catch ( Exception ex )
 		{
 			Log.Warning( $"Failed to connect to WebSocket server: {ex.Message}" );
+			throw new Exception( "Failed to connect to WebSocket server", ex );
 		}
 	}
 
@@ -92,6 +90,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		catch ( Exception ex )
 		{
 			Log.Warning( $"Failed to send WebSocket message: {ex.Message}" );
+			throw new Exception( "Failed to send WebSocket message", ex );
 		}
 	}
 
@@ -121,6 +120,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		catch ( Exception ex )
 		{
 			Log.Error( $"Error processing received message: {ex.Message}" );
+			throw new Exception( "Error processing received message", ex );
 		}
 	}
 
@@ -179,6 +179,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 		catch ( Exception ex )
 		{
 			Log.Error( $"Error in timeout handling: {ex.Message}" );
+			throw new Exception( $"Error in timeout handling: {ex.Message}" );
 		}
 		finally
 		{
