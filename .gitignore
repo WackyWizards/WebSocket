@@ -21,8 +21,12 @@ code/Properties/*
 *.vpk
 *launchSettings.json
 *.sln
-
 *idea
+
+# Generated Documentation Files.
+Docs/html/
+Docs/doxygen/bin/
+
 
 # Exported / standalone games
 Exports/
