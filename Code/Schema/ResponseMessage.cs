@@ -2,6 +2,9 @@
 
 namespace WebSocket.Schema;
 
+/// <summary>
+/// A response back from the WebSocket server.
+/// </summary>
 public class ResponseMessage : Message
 {
 	[JsonPropertyName( "success" )]

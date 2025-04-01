@@ -16,17 +16,23 @@ public sealed class WebSocketConnection : Component, IDisposable
 	[Property]
 	public string Uri { get; set; }
 
+	/// <summary>
+	/// If we should use the Facepunch Authentication API.
+	/// </summary>
 	[Property, ToggleGroup( "UseToken", Label = "Use Token" )]
 	public bool UseToken { get; set; } = false;
 
+	/// <summary>
+	/// Service name for the auth api.
+	/// </summary>
 	[Property, ToggleGroup( "UseToken", Label = "Use Token" )]
 	public string ServiceName { get; set; }
 
 	public Sandbox.WebSocket Socket { get; set; }
 
-	private readonly ConcurrentDictionary<string, TaskCompletionSource<ResponseMessage>> _pendingRequests = new();
-
 	public event Action<Message> OnMessageReceived;
+
+	private readonly ConcurrentDictionary<string, TaskCompletionSource<ResponseMessage>> _pendingRequests = new();
 
 	private static Logger Log => new( "WebSocket" );
 
@@ -42,6 +48,11 @@ public sealed class WebSocketConnection : Component, IDisposable
 		base.OnDestroy();
 	}
 
+	/// <summary>
+	/// Attempt to connect to the WebSocket server at the set <see cref="Uri"/>.
+	/// </summary>
+	/// <exception cref="InvalidOperationException"></exception>
+	/// <exception cref="Exception"></exception>
 	public async Task Connect()
 	{
 		try
@@ -80,6 +91,11 @@ public sealed class WebSocketConnection : Component, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Send a message to the WebSocket server.
+	/// </summary>
+	/// <param name="message">Message to send.</param>
+	/// <exception cref="Exception">Thrown if message sending fails.</exception>
 	public async Task SendMessage( Message message )
 	{
 		try
@@ -93,6 +109,35 @@ public sealed class WebSocketConnection : Component, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Send a request message to the WebSocket server.
+	/// </summary>
+	/// <param name="request">Request to send.</param>
+	/// <returns>A response back from the WebSocket server.</returns>
+	/// <exception cref="Exception">Thrown if request sending fails.</exception>
+	public async Task<ResponseMessage> SendRequest( RequestMessage request )
+	{
+		var tcs = new TaskCompletionSource<ResponseMessage>();
+		_pendingRequests[request.CorrelationId] = tcs;
+
+		try
+		{
+			await Socket.Send( request );
+			Log.Info( $"Sent request {request.Type} with ID {request.CorrelationId}" );
+			return await tcs.Task;
+		}
+		catch ( Exception ex )
+		{
+			_pendingRequests.TryRemove( request.CorrelationId, out _ );
+			throw new Exception( $"Error sending request: {ex.Message}" );
+		}
+	}
+
+	/// <summary>
+	/// Called when a message is received from the WebSocket server.
+	/// </summary>
+	/// <param name="message">Received message.</param>
+	/// <exception cref="Exception">Thrown if processing of the message fails.</exception>
 	private void MessageReceived( string message )
 	{
 		try
@@ -117,24 +162,9 @@ public sealed class WebSocketConnection : Component, IDisposable
 		}
 	}
 
-	public async Task<ResponseMessage> SendRequest( RequestMessage request )
-	{
-		var tcs = new TaskCompletionSource<ResponseMessage>();
-		_pendingRequests[request.CorrelationId] = tcs;
-
-		try
-		{
-			await Socket.Send( request );
-			Log.Info( $"Sent request {request.Type} with ID {request.CorrelationId}" );
-			return await tcs.Task;
-		}
-		catch ( Exception ex )
-		{
-			_pendingRequests.TryRemove( request.CorrelationId, out _ );
-			throw new Exception( $"Error sending request: {ex.Message}" );
-		}
-	}
-
+	/// <summary>
+	/// Dispose of the WebSocket connection.
+	/// </summary>
 	public void Dispose()
 	{
 		try
