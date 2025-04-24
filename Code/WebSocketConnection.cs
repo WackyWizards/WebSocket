@@ -34,7 +34,7 @@ public sealed class WebSocketConnection : Component, IDisposable
 
 	private readonly ConcurrentDictionary<string, TaskCompletionSource<ResponseMessage>> _pendingRequests = new();
 
-	private static Logger Log => new( "WebSocket" );
+	private static readonly Logger Log = new( "WebSocket" );
 
 	protected override void OnStart()
 	{
